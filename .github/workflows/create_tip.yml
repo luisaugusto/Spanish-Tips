@@ -1,0 +1,36 @@
+name: Create Spanish Tip
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Prompt for the Spanish tip"
+        required: true
+        type: string
+
+jobs:
+  create-tip:
+    runs-on: ubuntu-latest
+    env:
+      NOTION_KEY: ${{ secrets.NOTION_KEY }}
+      NOTION_DB: ${{ secrets.NOTION_DB }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Spanish tip script
+        run: |
+          node index.js --prompt "${{ github.event.inputs.prompt }}"
+        env:
+          NOTION_KEY: ${{ secrets.NOTION_KEY }}
+          NOTION_DB: ${{ secrets.NOTION_DB }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
