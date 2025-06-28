@@ -47,4 +47,4 @@ jobs:
         run: |
           gh api repos/${{ github.repository }}/notifications -f reason=manual -f subject="New Spanish Tip Created" -f body="[View Notion Page](${{ steps.extract_url.outputs.notion_url }})"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
