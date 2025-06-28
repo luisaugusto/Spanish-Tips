@@ -90,7 +90,7 @@ const chatQuery = encodeURIComponent(
 );
 
 const blocks =
-  markdownToBlocks(`[Practice (Web)](https://chat.openai.com/?q=${chatQuery})
+  markdownToBlocks(`[Practice with ChatGPT](https://chat.openai.com/?q=${chatQuery})
 # Explanation
 ${response.output_parsed.explanation}
 # Examples
