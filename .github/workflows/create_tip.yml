@@ -45,4 +45,4 @@ jobs:
       - name: Print Notion page URL
         if: steps.extract_url.outputs.notion_url != ''
         run: |
-          echo "Notion page created: ${{ steps.extract_url.outputs.notion_url }}"
+          echo "${{ steps.extract_url.outputs.notion_url }}"
