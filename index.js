@@ -92,7 +92,7 @@ ${response.output_parsed.examples}
 # Practice Prompt
 ${response.output_parsed.practice_prompt}`);
 
-await notion.pages.create({
+const createResponse = await notion.pages.create({
   parent: { database_id: process.env.NOTION_DB },
   properties: {
     Name: {
@@ -127,3 +127,7 @@ await notion.pages.create({
   },
   children: blocks,
 });
+
+// Output the Notion page URL for use in the workflow
+const notionUrl = createResponse.url;
+console.log(`NOTION_PAGE_URL=${notionUrl}`);
