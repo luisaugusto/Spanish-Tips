@@ -1,0 +1,11 @@
+{
+  "name": "spanish-tips",
+  "version": "1.0.0",
+  "description": "Takes a prompt for a Spanish tip and outputs information about the prompt into a Notion page",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Luis Augusto",
+  "license": "ISC"
+}
