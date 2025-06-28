@@ -85,7 +85,13 @@ const notion = new Client({
   auth: process.env.NOTION_KEY,
 });
 
-const blocks = markdownToBlocks(`# Explanation
+const chatQuery = encodeURIComponent(
+  `You are a Spanish language tutor that provides tips to help people learn Spanish. I am currently studying the topic "${response.output_parsed.title}", and I want to practice it. Please provide me with practice prompts that I can use to improve my understanding of this topic.`
+);
+
+const blocks =
+  markdownToBlocks(`[Practice (Web)](https://chat.openai.com/?q=${chatQuery})
+# Explanation
 ${response.output_parsed.explanation}
 # Examples
 ${response.output_parsed.examples}
