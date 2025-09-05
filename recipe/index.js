@@ -5,7 +5,8 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import "dotenv/config";
 import { markdownToBlocks, markdownToRichText } from "@tryfabric/martian";
-import { File } from "undici"; // in Node. In browsers, global File exists.
+import pkg from "undici";
+const { File } = pkg;
 
 // Schema definition stays the same
 const Recipe = z.object({
