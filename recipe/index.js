@@ -161,7 +161,6 @@ async function uploadImageToNotion(b64, title) {
     const filename = `${Date.now()}-${slugify(title) || "recipe"}.png`;
 
     const created = await notion.fileUploads.create({
-      mode: "single_part",
       filename,
       content_type: "image/png",
     });
@@ -179,9 +178,7 @@ async function uploadImageToNotion(b64, title) {
       `https://api.notion.com/v1/file_uploads/${created.id}/send`,
       {
         method: "POST",
-        body: {
-          file: form.get("file"),
-        },
+        body: form,
         headers: {
           Authorization: `Bearer ${process.env.NOTION_KEY}`,
           "Notion-Version": "2022-06-28",
