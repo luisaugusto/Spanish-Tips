@@ -80,7 +80,8 @@ const Recipe = z.object({
     )
     .describe("Step-by-step cooking instructions as an array of steps."),
   serving_size: z.string({
-    description: "Number of servings or portion description.",
+    description:
+      "Number of servings that the recipe makes and portion description.",
   }),
   calories: z.number({
     description: "Calories (cal).",
@@ -141,6 +142,8 @@ try {
     prompt: imagePrompt,
     size: "1024x1024",
   });
+
+  console.log("Image generation result:", imageResult);
 
   imageUrl = imageResult.data?.[0]?.url;
   if (imageUrl) {
