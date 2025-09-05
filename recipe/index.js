@@ -172,11 +172,14 @@ async function uploadImageToNotion(b64, title) {
     });
 
     console.log(form);
+    console.log(form.get("file"));
     const res = await fetch(
       `https://api.notion.com/v1/file_uploads/${created.id}/send`,
       {
         method: "POST",
-        body: form,
+        body: {
+          file: form.get("file"),
+        },
         headers: {
           Authorization: `Bearer ${process.env.NOTION_KEY}`,
           "Notion-Version": "2022-06-28",
