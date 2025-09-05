@@ -136,7 +136,6 @@ async function generateImageBase64(imagePrompt) {
       model: "gpt-image-1",
       prompt: imagePrompt,
       size: "1024x1024",
-      response_format: "b64_json",
     });
     const b64 = imageResult?.data?.[0]?.b64_json;
     if (!b64) throw new Error("OpenAI did not return b64_json.");
