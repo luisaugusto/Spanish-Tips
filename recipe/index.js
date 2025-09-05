@@ -163,7 +163,6 @@ async function uploadImageToNotion(b64, title) {
       mode: "single_part",
       filename,
       content_type: "image/png",
-      number_of_parts: 1,
     });
     if (!created?.id)
       throw new Error("Notion did not return file upload id on create.");
