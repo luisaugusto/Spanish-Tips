@@ -66,14 +66,16 @@ const Recipe = z.object({
   preparation: z
     .array(
       z.string({
-        description: "A single preparation step.",
+        description:
+          "A single preparation step. Do not include step numbers, just the instruction.",
       })
     )
     .describe("Step-by-step preparation instructions as an array of steps."),
   instructions: z
     .array(
       z.string({
-        description: "A single instruction step.",
+        description:
+          "A single instruction step. Do not include step numbers, just the instruction.",
       })
     )
     .describe("Step-by-step cooking instructions as an array of steps."),
@@ -121,6 +123,35 @@ const response = await client.responses.parse({
 
 console.info("Response:", response.output_parsed);
 
+// Generate an image for the recipe using OpenAI Images and the parsed content
+let imageUrl;
+try {
+  const ingredientList = response.output_parsed.ingredients
+    .map((i) => `${i.ingredient} (${i.quantity})`)
+    .join(", ");
+  const imagePrompt = [
+    `A high-quality, cinematic food photograph of "${response.output_parsed.title}"`,
+    response.output_parsed.description,
+    `Key ingredients: ${ingredientList}.`,
+    "Style: natural light, shallow depth of field, vibrant colors, soft shadows, no text, no labels, no people, professional food styling.",
+  ].join("\n");
+
+  const imageResult = await client.images.generate({
+    model: "gpt-image-1",
+    prompt: imagePrompt,
+    size: "1024x1024",
+  });
+
+  imageUrl = imageResult.data?.[0]?.url;
+  if (imageUrl) {
+    console.info("Generated image URL:", imageUrl);
+  } else {
+    console.warn("No image URL returned from OpenAI Images API.");
+  }
+} catch (err) {
+  console.warn("Image generation failed:", err?.message || err);
+}
+
 // Initializing a client
 const notion = new Client({
   auth: process.env.NOTION_KEY,
@@ -149,7 +180,8 @@ ${response.output_parsed.instructions
   .map((step, index) => `${index + 1}. ${step}`)
   .join("\n")}`);
 
-const createResponse = await notion.pages.create({
+// Build the page payload and conditionally add a cover image
+const pagePayload = {
   parent: { database_id: process.env.RECIPE_DB },
   properties: {
     Name: {
@@ -228,7 +260,16 @@ const createResponse = await notion.pages.create({
     },
   },
   children: blocks,
-});
+};
+
+if (imageUrl) {
+  pagePayload.cover = {
+    type: "external",
+    external: { url: imageUrl },
+  };
+}
+
+const createResponse = await notion.pages.create(pagePayload);
 
 // Output the Notion page URL for use in the workflow
 const notionUrl = createResponse.url;
