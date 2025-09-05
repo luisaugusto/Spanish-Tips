@@ -5,7 +5,8 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import "dotenv/config";
 import { markdownToBlocks, markdownToRichText } from "@tryfabric/martian";
-import fetch from "node-fetch";
+import undici from "undici"; // Web-standard implementations
+const { Blob, FormData } = undici;
 
 // Schema definition stays the same
 const Recipe = z.object({
@@ -156,6 +157,7 @@ function slugify(str) {
 }
 
 async function uploadImageToNotion(b64, title) {
+  console.log(b64);
   try {
     const imageBuffer = Buffer.from(b64, "base64");
     const filename = `${Date.now()}-${slugify(title) || "recipe"}.png`;
