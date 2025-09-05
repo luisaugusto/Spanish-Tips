@@ -171,6 +171,7 @@ async function uploadImageToNotion(b64, title) {
       filename,
     });
 
+    console.log(form);
     const res = await fetch(
       `https://api.notion.com/v1/file_uploads/${created.id}/send`,
       {
