@@ -167,9 +167,11 @@ async function uploadImageToNotion(b64, title) {
     if (!created?.id)
       throw new Error("Notion did not return file upload id on create.");
 
+    const filePart = new Blob([imageBuffer], { type: "image/png" });
+
     await notion.fileUploads.send({
       file_upload_id: created.id,
-      file: imageBuffer,
+      file: filePart,
       part_number: 1,
     });
 
