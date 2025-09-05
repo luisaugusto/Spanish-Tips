@@ -136,6 +136,7 @@ async function generateImageBase64(imagePrompt) {
       model: "gpt-image-1",
       prompt: imagePrompt,
       size: "1024x1024",
+      response_format: "b64_json",
     });
     const b64 = imageResult?.data?.[0]?.b64_json;
     if (!b64) throw new Error("OpenAI did not return b64_json.");
@@ -167,7 +168,11 @@ async function uploadImageToNotion(b64, title) {
     if (!created?.id)
       throw new Error("Notion did not return file upload id on create.");
 
-    const filePart = new Blob([imageBuffer], { type: "image/png" });
+    // Pass a File/Blob with explicit type so the part content-type is image/png
+    const filePart =
+      typeof File !== "undefined"
+        ? new File([imageBuffer], filename, { type: "image/png" })
+        : new Blob([imageBuffer], { type: "image/png" });
 
     await notion.fileUploads.send({
       file_upload_id: created.id,
