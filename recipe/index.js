@@ -6,7 +6,7 @@ import { z } from "zod";
 import "dotenv/config";
 import { markdownToBlocks, markdownToRichText } from "@tryfabric/martian";
 import undici from "undici"; // Web-standard implementations
-const { Blob, FormData } = undici;
+const { FormData } = undici;
 
 // Schema definition stays the same
 const Recipe = z.object({
