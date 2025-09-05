@@ -167,9 +167,11 @@ async function uploadImageToNotion(b64, title) {
     });
 
     const form = new FormData();
-    form.append("file", new Blob([imageBuffer], { type: "image/png" }), {
-      filename,
-    });
+    form.append(
+      "file",
+      new Blob([imageBuffer], { type: "image/png" }),
+      filename
+    );
 
     console.log(form);
     console.log(form.get("file"));
