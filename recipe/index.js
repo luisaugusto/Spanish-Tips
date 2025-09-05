@@ -22,7 +22,7 @@ const Recipe = z.object({
   }),
   difficulty: z
     .enum(["Easy", "Medium", "Hard"])
-    .description(
+    .describe(
       "Difficulty level of the recipe in terms of time and technical skill."
     ),
   diet: z
