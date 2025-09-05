@@ -5,8 +5,8 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import "dotenv/config";
 import { markdownToBlocks, markdownToRichText } from "@tryfabric/martian";
-import pkg from "undici";
-const { File } = pkg;
+import { Blob, FormData } from "undici";
+import fetch from "node-fetch";
 
 // Schema definition stays the same
 const Recipe = z.object({
@@ -161,22 +161,34 @@ async function uploadImageToNotion(b64, title) {
     const imageBuffer = Buffer.from(b64, "base64");
     const filename = `${Date.now()}-${slugify(title) || "recipe"}.png`;
 
-    // 1) create
     const created = await notion.fileUploads.create({
       mode: "single_part",
-      filename, // optional, but helpful
-      content_type: "image/png", // must match the part you send below
+      filename,
+      content_type: "image/png",
     });
 
-    // 2) send (make sure the File has the right type and name)
-    const file = new File([imageBuffer], filename, { type: "image/png" });
-    await notion.fileUploads.send({
-      file_upload_id: created.id,
-      file, // a Web File with a type -> SDK will send image/png
-      part_number: 1,
-    });
+    const form = new FormData();
+    form.append(
+      "file",
+      new Blob([imageBuffer], { type: "image/png" }),
+      filename
+    );
 
-    // 3) DO NOT call complete() for single_part
+    const res = await fetch(
+      `https://api.notion.com/v1/file_uploads/${created.id}/send`,
+      {
+        method: "POST",
+        body: form,
+        headers: {
+          Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+          "Notion-Version": "2022-06-28",
+          // Let fetch set Content-Type (with boundary) automatically
+        },
+      }
+    );
+    if (!res.ok) throw new Error(await res.text());
+
+    // No complete() for single_part
     return created.id;
   } catch (err) {
     throw new Error(`Failed to upload image to Notion: ${err?.message || err}`);
