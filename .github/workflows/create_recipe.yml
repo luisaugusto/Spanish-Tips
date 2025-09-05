@@ -29,8 +29,10 @@ jobs:
 
       - name: Run Recipe script
         id: create_recipe
+        shell: bash
         run: |
-          node recipe/index.js --prompt "${{ github.event.inputs.prompt }}" | tee output.log
+          set -euo pipefail
+          node recipe/index.js --prompt "${{ github.event.inputs.prompt }}" |& tee output.log
         env:
           NOTION_KEY: ${{ secrets.NOTION_KEY }}
           RECIPE_DB: ${{ secrets.RECIPE_DB }}
