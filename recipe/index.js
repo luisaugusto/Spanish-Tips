@@ -166,18 +166,13 @@ async function uploadImageToNotion(b64, title) {
       content_type: "image/png",
     });
 
-    const form = new FormData();
-    form.append(
-      "file",
-      new Blob([imageBuffer], { type: "image/png" }),
-      filename
-    );
-
     const res = await fetch(
       `https://api.notion.com/v1/file_uploads/${created.id}/send`,
       {
         method: "POST",
-        body: form,
+        body: {
+          file: new Blob([imageBuffer], { type: "image/png" }),
+        },
         headers: {
           Authorization: `Bearer ${process.env.NOTION_KEY}`,
           "Notion-Version": "2022-06-28",
