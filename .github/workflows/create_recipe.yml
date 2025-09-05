@@ -9,7 +9,7 @@ on:
         type: string
 
 jobs:
-  create-tip:
+  create-recipe:
     runs-on: ubuntu-latest
     env:
       NOTION_KEY: ${{ secrets.NOTION_KEY }}
