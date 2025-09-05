@@ -1,0 +1,48 @@
+name: Create Recipe
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "Prompt for the recipe"
+        required: true
+        type: string
+
+jobs:
+  create-tip:
+    runs-on: ubuntu-latest
+    env:
+      NOTION_KEY: ${{ secrets.NOTION_KEY }}
+      RECIPE_DB: ${{ secrets.RECIPE_DB }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Recipe script
+        id: create_recipe
+        run: |
+          node recipe/index.js --prompt "${{ github.event.inputs.prompt }}" | tee output.log
+        env:
+          NOTION_KEY: ${{ secrets.NOTION_KEY }}
+          RECIPE_DB: ${{ secrets.RECIPE_DB }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Extract Notion page URL
+        id: extract_url
+        run: |
+          url=$(grep -o 'NOTION_PAGE_URL=.*' output.log | cut -d'=' -f2-)
+          echo "notion_url=$url" >> $GITHUB_OUTPUT
+
+      - name: Print Notion page URL
+        if: steps.extract_url.outputs.notion_url != ''
+        run: |
+          echo "${{ steps.extract_url.outputs.notion_url }}"

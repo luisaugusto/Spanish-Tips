@@ -69,7 +69,7 @@ const Tip = z.object({
 const client = new OpenAI();
 
 const response = await client.responses.parse({
-  model: "gpt-4.1",
+  model: "gpt-5",
   input: prompt,
   instructions:
     "You are a spanish language tutor that provides tips to help people learn Spanish. Each tip should be concise, clear, and practical.",
