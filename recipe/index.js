@@ -5,8 +5,9 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import "dotenv/config";
 import { markdownToBlocks, markdownToRichText } from "@tryfabric/martian";
-import { Blob, FormData } from "undici";
+import undici from "undici";
 import fetch from "node-fetch";
+const { Blob, FormData } = undici;
 
 // Schema definition stays the same
 const Recipe = z.object({
