@@ -124,8 +124,14 @@ const response = await client.responses.parse({
 
 console.info("Response:", response.output_parsed);
 
-// Generate an image for the recipe using OpenAI Images and the parsed content
-let imageUrl;
+// Initialize Notion client early (used by file uploads and page creation)
+const notion = new Client({
+  auth: process.env.NOTION_KEY,
+});
+
+// Generate an image for the recipe using OpenAI Images and upload to Notion via File Uploads API
+let fileUploadId;
+let imageUrl; // fallback if needed
 try {
   const ingredientList = response.output_parsed.ingredients
     .map((i) => `${i.ingredient} (${i.quantity})`)
@@ -137,28 +143,80 @@ try {
     "Style: natural light, shallow depth of field, vibrant colors, soft shadows, no text, no labels, no people, professional food styling.",
   ].join("\n");
 
+  // Request base64 so we can upload directly to Notion
   const imageResult = await client.images.generate({
     model: "gpt-image-1",
     prompt: imagePrompt,
     size: "1024x1024",
+    response_format: "b64_json",
   });
 
-  console.log("Image generation result:", imageResult);
-
-  imageUrl = imageResult.data?.[0]?.url;
-  if (imageUrl) {
-    console.info("Generated image URL:", imageUrl);
-  } else {
-    console.warn("No image URL returned from OpenAI Images API.");
+  const b64 = imageResult.data?.[0]?.b64_json;
+  if (!b64) {
+    throw new Error("No b64_json returned from OpenAI Images API");
   }
-} catch (err) {
-  console.warn("Image generation failed:", err?.message || err);
-}
 
-// Initializing a client
-const notion = new Client({
-  auth: process.env.NOTION_KEY,
-});
+  const imageBuffer = Buffer.from(b64, "base64");
+  const filenameSlug = response.output_parsed.title
+    .replace(/[^a-z0-9]+/gi, "-")
+    .toLowerCase()
+    .replace(/(^-|-$)/g, "");
+  const filename = `${Date.now()}-${filenameSlug || "recipe"}.png`;
+
+  // 1) Create file upload in Notion (single-part upload)
+  const created = await notion.fileUploads.create({
+    mode: "upload",
+    filename,
+    content_type: "image/png",
+    number_of_parts: 1,
+  });
+
+  // 2) Send the file content
+  await notion.fileUploads.send({
+    file_upload_id: created.id,
+    file: imageBuffer,
+    part_number: 1,
+  });
+
+  // 3) Complete the upload
+  const completed = await notion.fileUploads.complete({
+    file_upload_id: created.id,
+  });
+
+  fileUploadId = completed.id;
+  console.info("Notion file upload completed:", fileUploadId);
+} catch (err) {
+  console.warn(
+    "Notion file upload failed, falling back to external URL cover:",
+    err?.message || err
+  );
+  try {
+    // Fallback: request a URL from OpenAI and use it as external cover
+    const ingredientList = response.output_parsed.ingredients
+      .map((i) => `${i.ingredient} (${i.quantity})`)
+      .join(", ");
+    const imagePrompt = [
+      `A high-quality, cinematic food photograph of "${response.output_parsed.title}"`,
+      response.output_parsed.description,
+      `Key ingredients: ${ingredientList}.`,
+      "Style: natural light, shallow depth of field, vibrant colors, soft shadows, no text, no labels, no people, professional food styling.",
+    ].join("\n");
+
+    const urlResult = await client.images.generate({
+      model: "gpt-image-1",
+      prompt: imagePrompt,
+      size: "1024x1024",
+      response_format: "url",
+    });
+    imageUrl = urlResult.data?.[0]?.url;
+    if (imageUrl) console.info("Generated image URL (fallback):", imageUrl);
+  } catch (fallbackErr) {
+    console.warn(
+      "Fallback URL generation failed:",
+      fallbackErr?.message || fallbackErr
+    );
+  }
+}
 
 const ingredients = markdownToRichText(
   response.output_parsed.ingredients
@@ -265,7 +323,12 @@ const pagePayload = {
   children: blocks,
 };
 
-if (imageUrl) {
+if (fileUploadId) {
+  pagePayload.cover = {
+    type: "file_upload",
+    file_upload: { id: fileUploadId },
+  };
+} else if (imageUrl) {
   pagePayload.cover = {
     type: "external",
     external: { url: imageUrl },
