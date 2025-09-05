@@ -6,20 +6,9 @@ import { z } from "zod";
 import "dotenv/config";
 import { markdownToBlocks, markdownToRichText } from "@tryfabric/martian";
 
-const args = minimist(process.argv.slice(2));
-const prompt = args.prompt;
-
-if (!prompt) {
-  console.error("Please provide a prompt as an argument.");
-  process.exit(1);
-}
-
-console.info(`Prompt received: ${prompt}`);
-
+// Schema definition stays the same
 const Recipe = z.object({
-  title: z.string({
-    description: "Title of the recipe",
-  }),
+  title: z.string({ description: "Title of the recipe" }),
   difficulty: z
     .enum(["Easy", "Medium", "Hard"])
     .describe(
@@ -45,12 +34,8 @@ const Recipe = z.object({
       ])
     )
     .describe("Types of protein used in the recipe."),
-  prep_time: z.number({
-    description: "Preparation time in minutes.",
-  }),
-  cook_time: z.number({
-    description: "Cooking time in minutes.",
-  }),
+  prep_time: z.number({ description: "Preparation time in minutes." }),
+  cook_time: z.number({ description: "Cooking time in minutes." }),
   description: z.string({
     description:
       "Short description of the recipe, such as it's origins, flavor profile, cooking techniques used, common pairings, and any other interesting details.",
@@ -83,21 +68,11 @@ const Recipe = z.object({
     description:
       "Number of servings that the recipe makes and portion description.",
   }),
-  calories: z.number({
-    description: "Calories (cal).",
-  }),
-  carbs: z.number({
-    description: "Carbohydrates in grams (g).",
-  }),
-  protein: z.number({
-    description: "Protein in grams (g).",
-  }),
-  fat: z.number({
-    description: "Fat in grams (g).",
-  }),
-  fiber: z.number({
-    description: "Fiber in grams (g).",
-  }),
+  calories: z.number({ description: "Calories (cal)." }),
+  carbs: z.number({ description: "Carbohydrates in grams (g)." }),
+  protein: z.number({ description: "Protein in grams (g)." }),
+  fat: z.number({ description: "Fat in grams (g)." }),
+  fiber: z.number({ description: "Fiber in grams (g)." }),
   other_nutrition: z
     .array(
       z.object({
@@ -110,232 +85,214 @@ const Recipe = z.object({
     ),
 });
 
-const client = new OpenAI();
+// Clients
+const openai = new OpenAI();
+const notion = new Client({ auth: process.env.NOTION_KEY });
 
-const response = await client.responses.parse({
-  model: "gpt-5",
-  input: prompt,
-  instructions:
-    "You are a helpful assistant that provides detailed cooking recipes based on user prompts. All the instructions and details should be should be clear, concise, and easy to follow.",
-  text: {
-    format: zodTextFormat(Recipe, "recipe"),
-  },
-});
+// Utilities
+function getPromptFromArgs() {
+  const args = minimist(process.argv.slice(2));
+  const prompt = args.prompt;
+  if (!prompt)
+    throw new Error(
+      'Please provide a prompt as an argument. Use --prompt "..."'
+    );
+  console.info(`Prompt received: ${prompt}`);
+  return prompt;
+}
 
-console.info("Response:", response.output_parsed);
+async function generateRecipe(prompt) {
+  try {
+    const response = await openai.responses.parse({
+      model: "gpt-5",
+      input: prompt,
+      instructions:
+        "You are a helpful assistant that provides detailed cooking recipes based on user prompts. All the instructions and details should be should be clear, concise, and easy to follow.",
+      text: { format: zodTextFormat(Recipe, "recipe") },
+    });
+    if (!response?.output_parsed) throw new Error("No parsed recipe returned.");
+    console.info("Recipe generated.");
+    return response.output_parsed;
+  } catch (err) {
+    throw new Error(`Failed to generate recipe: ${err?.message || err}`);
+  }
+}
 
-// Initialize Notion client early (used by file uploads and page creation)
-const notion = new Client({
-  auth: process.env.NOTION_KEY,
-});
-
-// Generate an image for the recipe using OpenAI Images and upload to Notion via File Uploads API
-let fileUploadId;
-let imageUrl; // fallback if needed
-try {
-  const ingredientList = response.output_parsed.ingredients
+function buildImagePrompt(recipe) {
+  const ingredientList = recipe.ingredients
     .map((i) => `${i.ingredient} (${i.quantity})`)
     .join(", ");
-  const imagePrompt = [
-    `A high-quality, cinematic food photograph of "${response.output_parsed.title}"`,
-    response.output_parsed.description,
+  return [
+    `A high-quality, cinematic food photograph of "${recipe.title}"`,
+    recipe.description,
     `Key ingredients: ${ingredientList}.`,
     "Style: natural light, shallow depth of field, vibrant colors, soft shadows, no text, no labels, no people, professional food styling.",
   ].join("\n");
+}
 
-  // Request base64 so we can upload directly to Notion
-  const imageResult = await client.images.generate({
-    model: "gpt-image-1",
-    prompt: imagePrompt,
-    size: "1024x1024",
-  });
-
-  const b64 = imageResult.data?.[0]?.b64_json;
-  if (!b64) {
-    throw new Error("No b64_json returned from OpenAI Images API");
-  }
-
-  const imageBuffer = Buffer.from(b64, "base64");
-  const filenameSlug = response.output_parsed.title
-    .replace(/[^a-z0-9]+/gi, "-")
-    .toLowerCase()
-    .replace(/(^-|-$)/g, "");
-  const filename = `${Date.now()}-${filenameSlug || "recipe"}.png`;
-
-  // 1) Create file upload in Notion (single-part upload)
-  const created = await notion.fileUploads.create({
-    mode: "upload",
-    filename,
-    content_type: "image/png",
-    number_of_parts: 1,
-  });
-
-  // 2) Send the file content
-  await notion.fileUploads.send({
-    file_upload_id: created.id,
-    file: imageBuffer,
-    part_number: 1,
-  });
-
-  // 3) Complete the upload
-  const completed = await notion.fileUploads.complete({
-    file_upload_id: created.id,
-  });
-
-  fileUploadId = completed.id;
-  console.info("Notion file upload completed:", fileUploadId);
-} catch (err) {
-  console.warn(
-    "Notion file upload failed, falling back to external URL cover:",
-    err?.message || err
-  );
+async function generateImageBase64(imagePrompt) {
   try {
-    // Fallback: request a URL from OpenAI and use it as external cover
-    const ingredientList = response.output_parsed.ingredients
-      .map((i) => `${i.ingredient} (${i.quantity})`)
-      .join(", ");
-    const imagePrompt = [
-      `A high-quality, cinematic food photograph of "${response.output_parsed.title}"`,
-      response.output_parsed.description,
-      `Key ingredients: ${ingredientList}.`,
-      "Style: natural light, shallow depth of field, vibrant colors, soft shadows, no text, no labels, no people, professional food styling.",
-    ].join("\n");
-
-    const urlResult = await client.images.generate({
+    const imageResult = await openai.images.generate({
       model: "gpt-image-1",
       prompt: imagePrompt,
       size: "1024x1024",
-      response_format: "url",
+      response_format: "b64_json",
     });
-    imageUrl = urlResult.data?.[0]?.url;
-    if (imageUrl) console.info("Generated image URL (fallback):", imageUrl);
-  } catch (fallbackErr) {
-    console.warn(
-      "Fallback URL generation failed:",
-      fallbackErr?.message || fallbackErr
+    const b64 = imageResult?.data?.[0]?.b64_json;
+    if (!b64) throw new Error("OpenAI did not return b64_json.");
+    return b64;
+  } catch (err) {
+    throw new Error(
+      `Failed to generate image (base64): ${err?.message || err}`
     );
   }
 }
 
-const ingredients = markdownToRichText(
-  response.output_parsed.ingredients
-    .map(
-      (ingredient) => `**${ingredient.ingredient}** - ${ingredient.quantity}`
-    )
-    .join("\n")
-);
-
-const nutritionItems = markdownToRichText(
-  response.output_parsed.other_nutrition
-    .map((item) => `**${item.item}** - ${item.quantity}`)
-    .join("\n")
-);
-
-const blocks = markdownToBlocks(`# Preparation
-${response.output_parsed.preparation
-  .map((step, index) => `${index + 1}. ${step}`)
-  .join("\n")}
-# Instructions
-${response.output_parsed.instructions
-  .map((step, index) => `${index + 1}. ${step}`)
-  .join("\n")}`);
-
-// Build the page payload and conditionally add a cover image
-const pagePayload = {
-  parent: { database_id: process.env.RECIPE_DB },
-  properties: {
-    Name: {
-      title: [
-        {
-          text: {
-            content: response.output_parsed.title,
-          },
-        },
-      ],
-    },
-    Difficulty: {
-      select: {
-        name: response.output_parsed.difficulty,
-      },
-    },
-    Diet: {
-      multi_select: response.output_parsed.diet.map((diet) => ({
-        name: diet,
-      })),
-    },
-    Allergies: {
-      multi_select: response.output_parsed.allergies.map((allergy) => ({
-        name: allergy,
-      })),
-    },
-    "Protein Type": {
-      multi_select: response.output_parsed.protein_type.map((type) => ({
-        name: type,
-      })),
-    },
-    Ingredients: {
-      rich_text: ingredients,
-    },
-    "Prep Time (min)": {
-      number: response.output_parsed.prep_time,
-    },
-    "Cook Time (min)": {
-      number: response.output_parsed.cook_time,
-    },
-    Description: {
-      rich_text: [
-        {
-          text: {
-            content: response.output_parsed.description,
-          },
-        },
-      ],
-    },
-    "Serving Size": {
-      rich_text: [
-        {
-          text: {
-            content: response.output_parsed.serving_size,
-          },
-        },
-      ],
-    },
-    "Calories (cal)": {
-      number: response.output_parsed.calories,
-    },
-    "Carbs (g)": {
-      number: response.output_parsed.carbs,
-    },
-    "Protein (g)": {
-      number: response.output_parsed.protein,
-    },
-    "Fat (g)": {
-      number: response.output_parsed.fat,
-    },
-    "Fiber (g)": {
-      number: response.output_parsed.fiber,
-    },
-    "Nutrition Facts": {
-      rich_text: nutritionItems,
-    },
-  },
-  children: blocks,
-};
-
-if (fileUploadId) {
-  pagePayload.cover = {
-    type: "file_upload",
-    file_upload: { id: fileUploadId },
-  };
-} else if (imageUrl) {
-  pagePayload.cover = {
-    type: "external",
-    external: { url: imageUrl },
-  };
+function slugify(str) {
+  return String(str)
+    .replace(/[^a-z0-9]+/gi, "-")
+    .toLowerCase()
+    .replace(/(^-|-$)/g, "");
 }
 
-const createResponse = await notion.pages.create(pagePayload);
+async function uploadImageToNotion(b64, title) {
+  try {
+    const imageBuffer = Buffer.from(b64, "base64");
+    const filename = `${Date.now()}-${slugify(title) || "recipe"}.png`;
 
-// Output the Notion page URL for use in the workflow
-const notionUrl = createResponse.url;
-console.log(`NOTION_PAGE_URL=${notionUrl}`);
+    const created = await notion.fileUploads.create({
+      mode: "single_part",
+      filename,
+      content_type: "image/png",
+      number_of_parts: 1,
+    });
+    if (!created?.id)
+      throw new Error("Notion did not return file upload id on create.");
+
+    await notion.fileUploads.send({
+      file_upload_id: created.id,
+      file: imageBuffer,
+      part_number: 1,
+    });
+
+    const completed = await notion.fileUploads.complete({
+      file_upload_id: created.id,
+    });
+    if (!completed?.id)
+      throw new Error("Notion did not return file upload id on complete.");
+
+    console.info("Image uploaded to Notion.");
+    return completed.id; // fileUploadId
+  } catch (err) {
+    throw new Error(`Failed to upload image to Notion: ${err?.message || err}`);
+  }
+}
+
+function buildIngredientsRichText(recipe) {
+  return markdownToRichText(
+    recipe.ingredients
+      .map(
+        (ingredient) => `**${ingredient.ingredient}** - ${ingredient.quantity}`
+      )
+      .join("\n")
+  );
+}
+
+function buildNutritionRichText(recipe) {
+  return markdownToRichText(
+    recipe.other_nutrition
+      .map((item) => `**${item.item}** - ${item.quantity}`)
+      .join("\n")
+  );
+}
+
+function buildBodyBlocks(recipe) {
+  return markdownToBlocks(`# Preparation
+${recipe.preparation.map((step, index) => `${index + 1}. ${step}`).join("\n")}
+# Instructions
+${recipe.instructions
+  .map((step, index) => `${index + 1}. ${step}`)
+  .join("\n")}`);
+}
+
+async function createNotionPage(
+  recipe,
+  blocks,
+  ingredientsRT,
+  nutritionRT,
+  cover
+) {
+  try {
+    const pagePayload = {
+      parent: { database_id: process.env.RECIPE_DB },
+      properties: {
+        Name: { title: [{ text: { content: recipe.title } }] },
+        Difficulty: { select: { name: recipe.difficulty } },
+        Diet: { multi_select: recipe.diet.map((d) => ({ name: d })) },
+        Allergies: { multi_select: recipe.allergies.map((a) => ({ name: a })) },
+        "Protein Type": {
+          multi_select: recipe.protein_type.map((t) => ({ name: t })),
+        },
+        Ingredients: { rich_text: ingredientsRT },
+        "Prep Time (min)": { number: recipe.prep_time },
+        "Cook Time (min)": { number: recipe.cook_time },
+        Description: { rich_text: [{ text: { content: recipe.description } }] },
+        "Serving Size": {
+          rich_text: [{ text: { content: recipe.serving_size } }],
+        },
+        "Calories (cal)": { number: recipe.calories },
+        "Carbs (g)": { number: recipe.carbs },
+        "Protein (g)": { number: recipe.protein },
+        "Fat (g)": { number: recipe.fat },
+        "Fiber (g)": { number: recipe.fiber },
+        "Nutrition Facts": { rich_text: nutritionRT },
+      },
+      children: blocks,
+      ...(cover ? { cover } : {}),
+    };
+
+    const created = await notion.pages.create(pagePayload);
+    if (!created?.url) throw new Error("Notion did not return page URL.");
+    console.info("Notion page created.");
+    return created.url;
+  } catch (err) {
+    throw new Error(`Failed to create Notion page: ${err?.message || err}`);
+  }
+}
+
+async function run() {
+  try {
+    const prompt = getPromptFromArgs();
+
+    // 1) Generate recipe
+    const recipe = await generateRecipe(prompt);
+
+    // 2) Prepare Notion content
+    const ingredientsRT = buildIngredientsRichText(recipe);
+    const nutritionRT = buildNutritionRichText(recipe);
+    const blocks = buildBodyBlocks(recipe);
+
+    // 3) Image generation and upload
+    const imagePrompt = buildImagePrompt(recipe);
+
+    let cover = null;
+    const b64 = await generateImageBase64(imagePrompt);
+    const fileUploadId = await uploadImageToNotion(b64, recipe.title);
+    cover = { type: "file_upload", file_upload: { id: fileUploadId } };
+
+    // 4) Create Notion page
+    const notionUrl = await createNotionPage(
+      recipe,
+      blocks,
+      ingredientsRT,
+      nutritionRT,
+      cover
+    );
+    console.log(`NOTION_PAGE_URL=${notionUrl}`);
+  } catch (err) {
+    console.error(err?.message || err);
+    process.exit(1);
+  }
+}
+
+run();
