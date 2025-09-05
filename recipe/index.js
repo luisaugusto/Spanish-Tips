@@ -179,7 +179,7 @@ async function uploadImageToNotion(b64, title) {
         method: "POST",
         body: form,
         headers: {
-          Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+          Authorization: `Bearer ${process.env.NOTION_KEY}`,
           "Notion-Version": "2022-06-28",
           // Let fetch set Content-Type (with boundary) automatically
         },
