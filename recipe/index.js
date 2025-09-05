@@ -36,8 +36,14 @@ const Recipe = z.object({
       ])
     )
     .describe("Types of protein used in the recipe."),
+  meal_type: z
+    .array(z.enum(["Breakfast", "Lunch", "Dinner", "Snack", "Dessert"]))
+    .describe("The type of meal this recipe is suitable for."),
   prep_time: z.number({ description: "Preparation time in minutes." }),
   cook_time: z.number({ description: "Cooking time in minutes." }),
+  country: z.string({
+    description: "Country or region where the recipe originates.",
+  }),
   description: z.string({
     description:
       "Short description of the recipe, such as it's origins, flavor profile, cooking techniques used, common pairings, and any other interesting details.",
@@ -237,10 +243,14 @@ async function createNotionPage(
       properties: {
         Name: { title: [{ text: { content: recipe.title } }] },
         Difficulty: { select: { name: recipe.difficulty } },
+        "Country of Origin": { select: { name: recipe.country } },
         Diet: { multi_select: recipe.diet.map((d) => ({ name: d })) },
         Allergies: { multi_select: recipe.allergies.map((a) => ({ name: a })) },
         "Protein Type": {
           multi_select: recipe.protein_type.map((t) => ({ name: t })),
+        },
+        "Meal Type": {
+          multi_select: recipe.meal_type.map((t) => ({ name: t })),
         },
         Ingredients: { rich_text: ingredientsRT },
         "Prep Time (min)": { number: recipe.prep_time },
