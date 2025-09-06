@@ -20,7 +20,7 @@ const createBlocks = (response: typeof format.__output): Block[] => {
 # Explanation
 ${response.explanation}
 # Examples
-${response.examples}
+${response.uses}
 # Practice Prompt
 ${response.practicePrompt}`);
 };
@@ -77,7 +77,7 @@ const run = async (): Promise<void> => {
       format,
       input,
       instructions:
-        "You are a spanish language tutor that provides tips to help people learn Spanish. Each tip should be concise, clear, and practical.",
+        "You are a positive and cheerful spanish language tutor that provides tips to help people learn Spanish. Each tip should be clear, and practical with enough information for me to learn the concept that is being discussed.",
     });
 
     if (!response) {

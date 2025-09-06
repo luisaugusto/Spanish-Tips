@@ -8,10 +8,6 @@ export default zod.object({
     "🟫 Pronunciation & Listening",
     "🟪 Cultural / Regional Variation",
   ]),
-  examples: zod.string({
-    description:
-      "Put the tip into practice by providing 2-3 spanish sentences or phrases that show the tip in use in a markdown format.",
-  }),
   explanation: zod.string({
     description: "A clear explanation of the tip in a markdown format.",
   }),
@@ -46,5 +42,9 @@ export default zod.object({
   ]),
   title: zod.string({
     description: "A concise title for the tip, ideally 5-10 words.",
+  }),
+  uses: zod.string({
+    description:
+      "Put the tip into practice by providing 2-3 spanish sentences or phrases that show the tip in use in a markdown format.",
   }),
 });
