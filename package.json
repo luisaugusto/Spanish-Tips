@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "npx eslint '**/*.ts' && npx prettier --check '**/*.ts'",
     "lint:fix": "npx eslint '**/*.ts' --fix && npx prettier --write '**/*.ts'",
-    "build": "tsc"
+    "build": "npx tsc"
   },
   "author": "Luis Augusto",
   "license": "ISC",
