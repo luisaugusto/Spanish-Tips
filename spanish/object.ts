@@ -10,11 +10,10 @@ export default zod.object({
   ]),
   examples: zod.string({
     description:
-      "Put the tip into practice by providing 2-3 spanish sentences of phrases that show the tip in use. You can use markdown formatting for emphasis.",
+      "Put the tip into practice by providing 2-3 spanish sentences or phrases that show the tip in use in a markdown format.",
   }),
   explanation: zod.string({
-    description:
-      "A clear explanation of the tip. You can use markdown formatting for emphasis.",
+    description: "A clear explanation of the tip in a markdown format.",
   }),
   level: zod.enum([
     "🟢 A1: Beginner",

@@ -104,12 +104,10 @@ const buildInformation = (
   recipe: typeof format.__output,
 ): {
   blocks: Block[];
-  imagePrompt: string;
   ingredientsRT: RichText[];
   nutritionRT: RichText[];
 } => ({
   blocks: buildBodyBlocks(recipe),
-  imagePrompt: buildImagePrompt(recipe),
   ingredientsRT: buildIngredientsRichText(recipe),
   nutritionRT: buildNutritionRichText(recipe),
 });
@@ -177,7 +175,7 @@ const run = async (): Promise<void> => {
       throw new Error("No recipe generated");
     }
 
-    const { imagePrompt } = buildInformation(recipe);
+    const imagePrompt = buildImagePrompt(recipe);
     const b64 = await generateImage(imagePrompt);
     const fileUploadId = await uploadImageToNotion(b64, recipe.title);
     const cover: CreatePageParameters["cover"] = {
