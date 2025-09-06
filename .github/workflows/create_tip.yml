@@ -38,14 +38,3 @@ jobs:
           NOTION_KEY: ${{ secrets.NOTION_KEY }}
           NOTION_DB: ${{ secrets.NOTION_DB }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Extract Notion page URL
-        id: extract_url
-        run: |
-          url=$(grep -o 'NOTION_PAGE_URL=.*' output.log | cut -d'=' -f2-)
-          echo "notion_url=$url" >> $GITHUB_OUTPUT
-
-      - name: Print Notion page URL
-        if: steps.extract_url.outputs.notion_url != ''
-        run: |
-          echo "${{ steps.extract_url.outputs.notion_url }}"
