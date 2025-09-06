@@ -1,12 +1,12 @@
 import "dotenv/config";
 import {
   convertToBlockObjectRequest,
-  generateData,
-  getPromptFromArgs,
-} from "../utils.js";
+  createNotionPage,
+} from "../api/notion.js";
 import type { Block } from "@tryfabric/martian/build/src/notion/blocks.js";
-import { Client } from "@notionhq/client";
 import Tip from "./object.js";
+import { generateData } from "../api/openai.js";
+import { getPromptFromArgs } from "../utils.js";
 import { markdownToBlocks } from "@tryfabric/martian";
 import { zodTextFormat } from "openai/helpers/zod";
 
@@ -25,17 +25,12 @@ ${response.uses}
 ${response.practicePrompt}`);
 };
 
-const createNotionPage = async (
-  response: typeof format.__output,
-): Promise<void> => {
-  const notion = new Client({
-    auth: process.env.NOTION_KEY,
-  });
+const createTip = async (response: typeof format.__output): Promise<void> => {
   const blocks = createBlocks(response);
 
-  await notion.pages.create({
+  await createNotionPage({
     children: convertToBlockObjectRequest(blocks),
-    parent: { database_id: process.env.NOTION_DB },
+    database_id: process.env.NOTION_DB,
     properties: {
       "CEFR Level": {
         select: {
@@ -84,7 +79,7 @@ const run = async (): Promise<void> => {
       throw new Error("No parsed data returned.");
     }
 
-    await createNotionPage(response);
+    await createTip(response);
   } catch (err) {
     throw new Error("Failed to create Notion page", { cause: err });
   }
