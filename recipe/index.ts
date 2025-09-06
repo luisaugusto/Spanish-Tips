@@ -39,7 +39,7 @@ const slugify = (str: string): string =>
 
 const uploadImageToNotion = async (
   b64: string,
-  title: string
+  title: string,
 ): Promise<string> => {
   try {
     const imageBuffer = Buffer.from(b64, "base64");
@@ -52,7 +52,7 @@ const uploadImageToNotion = async (
     form.append(
       "file",
       new Blob([imageBuffer], { type: "image/png" }),
-      filename
+      filename,
     );
 
     const res = await fetch(
@@ -64,7 +64,7 @@ const uploadImageToNotion = async (
           "Notion-Version": "2022-06-28",
         },
         method: "POST",
-      }
+      },
     );
     if (!res.ok) {
       throw new Error(await res.text());
@@ -80,16 +80,16 @@ const buildIngredientsRichText = (recipe: typeof format.__output): RichText[] =>
   markdownToRichText(
     recipe.ingredients
       .map(
-        (ingredient) => `**${ingredient.ingredient}** - ${ingredient.quantity}`
+        (ingredient) => `**${ingredient.ingredient}** - ${ingredient.quantity}`,
       )
-      .join("\n")
+      .join("\n"),
   );
 
 const buildNutritionRichText = (recipe: typeof format.__output): RichText[] =>
   markdownToRichText(
     recipe.otherNutrition
       .map((item) => `**${item.item}** - ${item.quantity}`)
-      .join("\n")
+      .join("\n"),
   );
 
 const buildBodyBlocks = (recipe: typeof format.__output): Block[] =>
@@ -101,7 +101,7 @@ ${recipe.instructions
   .join("\n")}`);
 
 const buildInformation = (
-  recipe: typeof format.__output
+  recipe: typeof format.__output,
 ): {
   blocks: Block[];
   imagePrompt: string;
@@ -116,7 +116,7 @@ const buildInformation = (
 
 const createNotionPage = async (
   recipe: typeof format.__output,
-  cover: CreatePageParameters["cover"]
+  cover: CreatePageParameters["cover"],
 ): Promise<void> => {
   try {
     const { blocks, ingredientsRT, nutritionRT } = buildInformation(recipe);
