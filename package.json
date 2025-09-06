@@ -4,7 +4,9 @@
   "description": "Takes a prompt for a Spanish tip and outputs information about the prompt into a Notion page",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "npx eslint '**/*.ts' && npx prettier --check '**/*.ts'",
+    "lint:fix": "npx eslint '**/*.ts' --fix && npx prettier --write '**/*.ts'",
+    "build": "tsc"
   },
   "author": "Luis Augusto",
   "license": "ISC",
@@ -17,5 +19,15 @@
     "undici": "^7.15.0",
     "zod": "^3.23.8"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^24.3.1",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0"
+  }
 }
