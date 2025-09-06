@@ -25,7 +25,7 @@ The Spanish Tips feature allows you to generate and store useful information abo
 ### iOS Shortcut
 You can use an [iOS Shortcut](https://www.icloud.com/shortcuts/282566d81a8641e7bb8de5ef374254e8) to quickly dispatch the workflow for generating Spanish tips. This allows you to use Siri or the control center to trigger the process.
 
-![IMG_2454](https://github.com/user-attachments/assets/157129cf-818b-4c5a-9cef-65f0396a6a0c)
+<img src="https://github.com/user-attachments/assets/157129cf-818b-4c5a-9cef-65f0396a6a0c" alt="drawing" width="400"/>
 
 ## Recipe Generator
 
@@ -46,7 +46,12 @@ The recipe generator feature allows you to create detailed cooking recipes based
 - Provide a prompt like: "A vegan lasagna recipe with a creamy cashew-based sauce."
 - The tool generates the recipe and uploads it to Notion.
 
-<!-- Placeholder for an image showcasing the recipe tool in action -->
+![Main Screen](https://github.com/user-attachments/assets/e7312c26-777b-4c29-af75-cff830f6505b)
+
+![Details](https://github.com/user-attachments/assets/be5940a8-5de0-4f62-9b10-dd9b2af4e203)
+
+![Instructions](https://github.com/user-attachments/assets/4bd3a2c1-085d-4c0e-83f3-edb1a9139482)
 
 ### iOS Shortcut
+
 Similar to the Spanish Tips feature, you can use an [iOS Shortcut](https://www.icloud.com/shortcuts/282566d81a8641e7bb8de5ef374254e8) to quickly dispatch the workflow for creating recipes. You can create a similar one for the recipe generator as well
