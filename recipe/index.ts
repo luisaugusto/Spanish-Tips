@@ -45,8 +45,8 @@ const uploadImageToNotion = async (
     const imageBuffer = Buffer.from(b64, "base64");
     const filename = `${Date.now()}-${slugify(title) || "recipe"}.png`;
     const created = await notion.fileUploads.create({
-      filename,
       content_type: "image/png",
+      filename,
     });
     const form = new FormData();
     form.append(
